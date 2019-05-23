@@ -39,3 +39,7 @@ neurogrid_tester\main.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.
 neurogrid_tester\main.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd.h
 neurogrid_tester\main.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h
 neurogrid_tester\main.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h
+neurogrid_tester\main.o: ../Inc/dataMGR.h
+neurogrid_tester\main.o: ../Inc/HD32_intan_driver.h
+neurogrid_tester\main.o: ../Inc/CE32_macro.h
+neurogrid_tester\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h

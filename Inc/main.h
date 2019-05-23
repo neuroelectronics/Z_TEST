@@ -50,8 +50,6 @@ extern "C" {
 
 /* USER CODE END EM */
 
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
@@ -66,6 +64,8 @@ void Error_Handler(void);
 #define LED1_GPIO_Port GPIOC
 #define LED2_Pin GPIO_PIN_15
 #define LED2_GPIO_Port GPIOC
+#define INTAN_MISO__Pin GPIO_PIN_1
+#define INTAN_MISO__GPIO_Port GPIOA
 #define SD_CS_Pin GPIO_PIN_2
 #define SD_CS_GPIO_Port GPIOA
 #define DAC1_Pin GPIO_PIN_4
@@ -76,10 +76,18 @@ void Error_Handler(void);
 #define SD_MISO_GPIO_Port GPIOA
 #define SD_MOSI_Pin GPIO_PIN_7
 #define SD_MOSI_GPIO_Port GPIOA
+#define INTAN_SCK____Pin GPIO_PIN_0
+#define INTAN_SCK____GPIO_Port GPIOB
+#define INTAN_SCK__Pin GPIO_PIN_10
+#define INTAN_SCK__GPIO_Port GPIOB
 #define hj_role_Pin GPIO_PIN_12
 #define hj_role_GPIO_Port GPIOB
+#define INTAN_SCK___Pin GPIO_PIN_13
+#define INTAN_SCK___GPIO_Port GPIOB
 #define hj_mode_Pin GPIO_PIN_14
 #define hj_mode_GPIO_Port GPIOB
+#define INTAN_MISO_B15_Pin GPIO_PIN_15
+#define INTAN_MISO_B15_GPIO_Port GPIOB
 #define HJ_STATE_Pin GPIO_PIN_8
 #define HJ_STATE_GPIO_Port GPIOA
 #define HJ_TX_Pin GPIO_PIN_9
@@ -94,6 +102,8 @@ void Error_Handler(void);
 #define INTAN_MOSI_GPIO_Port GPIOB
 #define INTAN_CS_Pin GPIO_PIN_6
 #define INTAN_CS_GPIO_Port GPIOB
+#define INTAN_MISO1__Pin GPIO_PIN_8
+#define INTAN_MISO1__GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

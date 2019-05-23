@@ -1,5 +1,6 @@
 --cpu Cortex-M4.fp
 "neurogrid_tester\startup_stm32f413xx.o"
+"neurogrid_tester\hd32_intan_driver.o"
 "neurogrid_tester\main.o"
 "neurogrid_tester\stm32f4xx_it.o"
 "neurogrid_tester\stm32f4xx_hal_msp.o"
