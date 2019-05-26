@@ -45,11 +45,14 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-extern int16_t dataBuf[10000];
+extern float dataBuf[10000];
+extern float dataBuf1[10000];
 extern float   impedance[128];
 uint64_t adc_cnt;
 uint32_t ch;
-
+float max;
+float min;
+extern int test_cyc;
 extern SPI_HandleTypeDef hspi3;
 /* USER CODE END PV */
 
@@ -225,7 +228,6 @@ void DMA1_Stream0_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Stream0_IRQn 0 */
 
   /* USER CODE END DMA1_Stream0_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_spi3_rx);
   /* USER CODE BEGIN DMA1_Stream0_IRQn 1 */
 
   /* USER CODE END DMA1_Stream0_IRQn 1 */
@@ -239,7 +241,6 @@ void DMA1_Stream3_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Stream3_IRQn 0 */
 
   /* USER CODE END DMA1_Stream3_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_tim4_ch2);
   /* USER CODE BEGIN DMA1_Stream3_IRQn 1 */
 
   /* USER CODE END DMA1_Stream3_IRQn 1 */
@@ -253,7 +254,6 @@ void DMA1_Stream6_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Stream6_IRQn 0 */
 
   /* USER CODE END DMA1_Stream6_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_tim4_up);
   /* USER CODE BEGIN DMA1_Stream6_IRQn 1 */
 
   /* USER CODE END DMA1_Stream6_IRQn 1 */
@@ -267,8 +267,6 @@ void TIM1_UP_TIM10_IRQHandler(void)
   /* USER CODE BEGIN TIM1_UP_TIM10_IRQn 0 */
 
   /* USER CODE END TIM1_UP_TIM10_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim1);
-  HAL_TIM_IRQHandler(&htim10);
   /* USER CODE BEGIN TIM1_UP_TIM10_IRQn 1 */
 
   /* USER CODE END TIM1_UP_TIM10_IRQn 1 */
@@ -282,8 +280,6 @@ void TIM1_TRG_COM_TIM11_IRQHandler(void)
   /* USER CODE BEGIN TIM1_TRG_COM_TIM11_IRQn 0 */
 
   /* USER CODE END TIM1_TRG_COM_TIM11_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim1);
-  HAL_TIM_IRQHandler(&htim11);
   /* USER CODE BEGIN TIM1_TRG_COM_TIM11_IRQn 1 */
 
   /* USER CODE END TIM1_TRG_COM_TIM11_IRQn 1 */
@@ -297,7 +293,6 @@ void TIM2_IRQHandler(void)
   /* USER CODE BEGIN TIM2_IRQn 0 */
 
   /* USER CODE END TIM2_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim2);
   /* USER CODE BEGIN TIM2_IRQn 1 */
 
   /* USER CODE END TIM2_IRQn 1 */
@@ -311,7 +306,6 @@ void TIM3_IRQHandler(void)
   /* USER CODE BEGIN TIM3_IRQn 0 */
 
   /* USER CODE END TIM3_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim3);
   /* USER CODE BEGIN TIM3_IRQn 1 */
 
   /* USER CODE END TIM3_IRQn 1 */
@@ -325,7 +319,6 @@ void TIM4_IRQHandler(void)
   /* USER CODE BEGIN TIM4_IRQn 0 */
 
   /* USER CODE END TIM4_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim4);
   /* USER CODE BEGIN TIM4_IRQn 1 */
 
   /* USER CODE END TIM4_IRQn 1 */
@@ -337,21 +330,79 @@ void TIM4_IRQHandler(void)
 void TIM8_TRG_COM_TIM14_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM8_TRG_COM_TIM14_IRQn 0 */
-
+	TIM14->SR&=~TIM_IT_UPDATE; //Clear interrupt flag
   /* USER CODE END TIM8_TRG_COM_TIM14_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim14);
   /* USER CODE BEGIN TIM8_TRG_COM_TIM14_IRQn 1 */
-	HD32_intan_writeReg(&hspi3,INTAN_CS_GPIO_Port,INTAN_CS_Pin,6,sin(2.0*PI*adc_cnt/10));
+	ch = 16;
+	int target_fs=1e3;
+	int system_fs=48e3;
+	int fs_ratio = system_fs / target_fs;
+	SPI3->DR=((0x80|0x07)<<8)|ch;
+	HAL_GPIO_WritePin(INTAN_CS_GPIO_Port,INTAN_CS_Pin,GPIO_PIN_RESET);//Set CS low
+	SPI3->DR=((0x80|0x06)<<8)|(uint8_t)((0.5+sin(2.0*PI*adc_cnt/system_fs*target_fs)/2.0)*255); //write to register 6 with sine wave
+	while((SPI3->SR&SPI_SR_BSY)!=0);
+	HAL_GPIO_WritePin(INTAN_CS_GPIO_Port,INTAN_CS_Pin,GPIO_PIN_SET);//Set CS high
+	for(int i=0;i<50;i++){__nop();}; //Need at least 154ns for the CS
+	
 	adc_cnt++;
-	dataBuf[adc_cnt%10000]=HD32_intan_convert(0x01|ch<<8);
-	if(adc_cnt>=50e4)
+	//Send Convert Command
+	HAL_GPIO_WritePin(INTAN_CS_GPIO_Port,INTAN_CS_Pin,GPIO_PIN_RESET);//Set CS low
+	SPI3->DR=0x00|((ch&0x1f)<<8); //Send convert command 0-31
+	if((ch&0x20)==0)
 	{
+		//dataBuf[adc_cnt%(fs_ratio*test_cyc)]+=(uint8_t)((0.5+sin(2.0*PI*adc_cnt/system_fs*target_fs)/2.0)*255); 
+		dataBuf[adc_cnt%fs_ratio]+=(float)(SPI3->DR)/test_cyc; //MISO0 PhaseA
+		dataBuf1[adc_cnt%fs_ratio]+=(float)(SPI4->DR)/test_cyc; //MISO1 PhaseA
+	}
+	else
+	{
+		dataBuf[adc_cnt%(fs_ratio*test_cyc)]+=(float)(SPI2->DR<<1)/test_cyc; //MISO0 PhaseB
+		dataBuf1[adc_cnt%fs_ratio]+=(float)(SPI5->DR<<1)/test_cyc; //MISO1 PhaseB
+	}
+	
+	while((SPI3->SR&SPI_SR_BSY)!=0);
+	HAL_GPIO_WritePin(INTAN_CS_GPIO_Port,INTAN_CS_Pin,GPIO_PIN_SET);//Set CS high
+	if(adc_cnt>=test_cyc*fs_ratio)
+	{
+		TIM14->CR1&=~TIM_CR1_CEN; //DISABLE TIMER
 		HAL_TIM_Base_Stop(&htim14);
-		// Find max find min;
+		
+		for(int i=0;i<sizeof(dataBuf)/4;i++)  // Find max find min;
+		{
+			if(~i)
+			{
+				min = dataBuf[i];
+				max = dataBuf[i];
+			}
+			else
+			{if(dataBuf[i]>max)
+				{
+					max = dataBuf[i];
+				}
+				else if(dataBuf[i]<min)
+				{
+					min = dataBuf[i];
+				}
+			}
+ 			dataBuf[i]=0; //Reset buffer
+		}
+		
+		max /= 0.38;
+		min /= 0.38;
+		
+
 		adc_cnt=0;
 		ch++;
 		ch&=0x3F;
-		HAL_TIM_Base_Start_IT(&htim14);
+		
+    
+		
+		HAL_GPIO_WritePin(INTAN_CS_GPIO_Port,INTAN_CS_Pin,GPIO_PIN_RESET);//Set CS low
+		SPI3->DR=((0x80|0x07)<<8)|ch; //write to register 7 with DAC channel
+		while((SPI3->SR&SPI_SR_BSY)!=0);
+		HAL_GPIO_WritePin(INTAN_CS_GPIO_Port,INTAN_CS_Pin,GPIO_PIN_SET);//Set CS high
+		
+		TIM14->CR1|=TIM_CR1_CEN; //DISABLE TIMER
 	}
   /* USER CODE END TIM8_TRG_COM_TIM14_IRQn 1 */
 }
@@ -364,7 +415,6 @@ void DMA1_Stream7_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Stream7_IRQn 0 */
 
   /* USER CODE END DMA1_Stream7_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_tim4_ch3);
   /* USER CODE BEGIN DMA1_Stream7_IRQn 1 */
 
   /* USER CODE END DMA1_Stream7_IRQn 1 */
@@ -378,7 +428,6 @@ void DMA2_Stream2_IRQHandler(void)
   /* USER CODE BEGIN DMA2_Stream2_IRQn 0 */
 
   /* USER CODE END DMA2_Stream2_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_spi1_tx);
   /* USER CODE BEGIN DMA2_Stream2_IRQn 1 */
 
   /* USER CODE END DMA2_Stream2_IRQn 1 */
@@ -392,7 +441,6 @@ void DMA2_Stream5_IRQHandler(void)
   /* USER CODE BEGIN DMA2_Stream5_IRQn 0 */
 
   /* USER CODE END DMA2_Stream5_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_tim1_up);
   /* USER CODE BEGIN DMA2_Stream5_IRQn 1 */
 
   /* USER CODE END DMA2_Stream5_IRQn 1 */

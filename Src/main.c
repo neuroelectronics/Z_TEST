@@ -36,7 +36,7 @@
 #define VAL 2.0* PI
 #define TEST_CYC 50;
 int Step=0;
-
+int test_cyc=50;
 float SinVoltage;  
 /* USER CODE END PTD */
 
@@ -81,7 +81,8 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
 IntanParams IntanInfo;
-int16_t dataBuf[10000];
+float dataBuf[10000];
+float dataBuf1[10000];
 float   impedance[128];
 /* USER CODE END PV */
 
@@ -164,14 +165,20 @@ int main(void)
 	
 	//Initialize Intan recording module
 	HD32_intan_init(&hspi3,INTAN_CS_GPIO_Port,INTAN_CS_Pin,20000,&IntanInfo);	//Intan setup and info read
-	HD32_intan_writeReg(&hspi3,INTAN_CS_GPIO_Port,INTAN_CS_Pin,5,0x61);// Enable impedance testing mode
-	HAL_TIM_Base_Start_IT(&htim14); //Enable timer
+	HD32_intan_calibration(&hspi3,INTAN_CS_GPIO_Port,INTAN_CS_Pin);
+	HD32_intan_writeReg(&hspi3,INTAN_CS_GPIO_Port,INTAN_CS_Pin,5,0x41);// Enable impedance testing mode
+	//TIM14->CR1|=TIM_CR1_ARPE|TIM_CR1_CEN;// ENable timer  auto-reload and start tick timer
+	SPI2->CR1|=SPI_CR1_SPE; //Enable SPI2
+	SPI4->CR1|=SPI_CR1_SPE; //Enable SPI4
+	SPI5->CR1|=SPI_CR1_SPE; //Enable SPI5
+	HAL_TIM_Base_Start_IT(&htim14);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -360,7 +367,7 @@ static void MX_SPI2_Init(void)
   hspi2.Instance = SPI2;
   hspi2.Init.Mode = SPI_MODE_SLAVE;
   hspi2.Init.Direction = SPI_DIRECTION_2LINES_RXONLY;
-  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi2.Init.DataSize = SPI_DATASIZE_16BIT;
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
@@ -435,7 +442,7 @@ static void MX_SPI4_Init(void)
   hspi4.Instance = SPI4;
   hspi4.Init.Mode = SPI_MODE_SLAVE;
   hspi4.Init.Direction = SPI_DIRECTION_2LINES_RXONLY;
-  hspi4.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi4.Init.DataSize = SPI_DATASIZE_16BIT;
   hspi4.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi4.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi4.Init.NSS = SPI_NSS_SOFT;
@@ -472,7 +479,7 @@ static void MX_SPI5_Init(void)
   hspi5.Instance = SPI5;
   hspi5.Init.Mode = SPI_MODE_SLAVE;
   hspi5.Init.Direction = SPI_DIRECTION_2LINES_RXONLY;
-  hspi5.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi5.Init.DataSize = SPI_DATASIZE_16BIT;
   hspi5.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi5.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi5.Init.NSS = SPI_NSS_SOFT;
@@ -789,7 +796,7 @@ static void MX_TIM14_Init(void)
   htim14.Instance = TIM14;
   htim14.Init.Prescaler = 0;
   htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim14.Init.Period = 55936;
+  htim14.Init.Period = 1999;
   htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
