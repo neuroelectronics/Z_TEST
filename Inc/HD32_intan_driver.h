@@ -36,3 +36,5 @@ __forceinline int16_t HD32_intan_convert(uint16_t conv_cmd){
 }
 
 #define PI 3.1415926
+#define SPI_WAIT_TILL_SENT(__handle__) if(((__handle__)->SR&SPI_SR_BSY)==0){for(int i=0;i<10;i++);}while(((__handle__)->SR&SPI_SR_BSY)!=0); 
+//#define SPI_WAIT_TILL_SENT for(int i=0;i<100;i++)

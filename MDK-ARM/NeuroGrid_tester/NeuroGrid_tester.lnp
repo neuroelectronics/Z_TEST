@@ -1,20 +1,13 @@
---cpu Cortex-M4.fp
+--cpu=Cortex-M4.fp
 "neurogrid_tester\startup_stm32f413xx.o"
 "neurogrid_tester\hd32_intan_driver.o"
 "neurogrid_tester\main.o"
 "neurogrid_tester\stm32f4xx_it.o"
 "neurogrid_tester\stm32f4xx_hal_msp.o"
-"neurogrid_tester\stm32f4xx_hal_dac.o"
-"neurogrid_tester\stm32f4xx_hal_dac_ex.o"
-"neurogrid_tester\stm32f4xx_hal_rtc.o"
-"neurogrid_tester\stm32f4xx_hal_rtc_ex.o"
 "neurogrid_tester\stm32f4xx_hal_spi.o"
 "neurogrid_tester\stm32f4xx_hal_tim.o"
 "neurogrid_tester\stm32f4xx_hal_tim_ex.o"
 "neurogrid_tester\stm32f4xx_hal_uart.o"
-"neurogrid_tester\stm32f4xx_hal_pcd.o"
-"neurogrid_tester\stm32f4xx_hal_pcd_ex.o"
-"neurogrid_tester\stm32f4xx_ll_usb.o"
 "neurogrid_tester\stm32f4xx_hal_rcc.o"
 "neurogrid_tester\stm32f4xx_hal_rcc_ex.o"
 "neurogrid_tester\stm32f4xx_hal_flash.o"
@@ -30,6 +23,6 @@
 "neurogrid_tester\stm32f4xx_hal_exti.o"
 "neurogrid_tester\system_stm32f4xx.o"
 --library_type=microlib --strict --scatter "NeuroGrid_tester\NeuroGrid_tester.sct"
---summary_stderr --info summarysizes --map --xref --callgraph --symbols
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers
 --list "NeuroGrid_tester.map" -o NeuroGrid_tester\NeuroGrid_tester.axf

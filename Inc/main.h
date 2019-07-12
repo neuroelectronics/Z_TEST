@@ -54,6 +54,12 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+#define STEP_FS		80e3
+#define SYSTEM_FS 80e6
+#define MAX_CHANNEL_NUMBER 128
+
+// define maximum impedance in kilo-ohm, any channel exceeding this value should be classified as not good
+#define MAX_IMP 100
 
 /* USER CODE END EFP */
 
@@ -70,18 +76,12 @@ void Error_Handler(void);
 #define SD_CS_GPIO_Port GPIOA
 #define DAC1_Pin GPIO_PIN_4
 #define DAC1_GPIO_Port GPIOA
-#define SD_SCK_Pin GPIO_PIN_5
-#define SD_SCK_GPIO_Port GPIOA
-#define SD_MISO_Pin GPIO_PIN_6
-#define SD_MISO_GPIO_Port GPIOA
-#define SD_MOSI_Pin GPIO_PIN_7
-#define SD_MOSI_GPIO_Port GPIOA
 #define INTAN_SCK____Pin GPIO_PIN_0
 #define INTAN_SCK____GPIO_Port GPIOB
 #define INTAN_SCK__Pin GPIO_PIN_10
 #define INTAN_SCK__GPIO_Port GPIOB
-#define hj_role_Pin GPIO_PIN_12
-#define hj_role_GPIO_Port GPIOB
+#define HJ_ROLE_Pin GPIO_PIN_12
+#define HJ_ROLE_GPIO_Port GPIOB
 #define INTAN_SCK___Pin GPIO_PIN_13
 #define INTAN_SCK___GPIO_Port GPIOB
 #define hj_mode_Pin GPIO_PIN_14
@@ -94,6 +94,8 @@ void Error_Handler(void);
 #define HJ_TX_GPIO_Port GPIOA
 #define HJ_RX_Pin GPIO_PIN_10
 #define HJ_RX_GPIO_Port GPIOA
+#define HJ_WAKE_Pin GPIO_PIN_15
+#define HJ_WAKE_GPIO_Port GPIOA
 #define INTAN_SCK_Pin GPIO_PIN_3
 #define INTAN_SCK_GPIO_Port GPIOB
 #define INTAN_MISO_Pin GPIO_PIN_4

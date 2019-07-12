@@ -10,16 +10,17 @@ int HD32_intan_init(SPI_HandleTypeDef* hspi,GPIO_TypeDef* CSS_port,uint16_t CSS_
 	GPIO_InitStruct.Alternate = 0;
 	HAL_GPIO_Init(INTAN_CS_GPIO_Port, &GPIO_InitStruct);
 	//check SPI speed, should be 12MHz
-	const uint8_t RHD2132_20K[22] ={222,3,7,2,204,0,0,0,22,0,23,0,16,124,0xff,0xff,0xff,0xff,0,0,0,0};
-	const uint8_t RHD2132_10K[22] ={222,4,18,2,204,0,0,0,22,0,23,0,16,124,0xff,0xff,0xff,0xff,0,0,0,0};
-	const uint8_t RHD2132_5K[22]  ={222,8,40,2,204,0,0,0,22,0,23,0,16,124,0xff,0xff,0xff,0xff,0,0,0,0};
-	const uint8_t RHD2132_1250[22]={222,32,40,2,204,0,0,0,22,0,23,0,16,124,0xff,0xff,0xff,0xff,0,0,0,0};
+	const uint8_t RHD2164_IMPTEST_20K[22] ={222,32,40,2,204,0,0,0,0x01,0x02,23,2,13,0,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
+	const uint8_t RHD2132_20K[22] ={222,3,7,2,204,0,0,0,22,0,23,0,16,124,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
+	const uint8_t RHD2132_10K[22] ={222,4,18,2,204,0,0,0,22,0,23,0,16,124,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
+	const uint8_t RHD2132_5K[22]  ={222,8,40,2,204,0,0,0,22,0,23,0,16,124,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
+	const uint8_t RHD2132_1250[22]={222,32,40,2,204,0,0,0,22,0,23,0,16,124,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
 	//INTAN_SPI_Init(hspi);
 	uint8_t intan_read[64];
 	for(uint8_t i=0;i<64;i++){
 		intan_read[i]=HD32_intan_readReg(hspi,CSS_port,CSS_pin,i);
 	}
-	HD32_intan_setup(hspi,CSS_port,CSS_pin,(uint8_t*)RHD2132_20K,sizeof(RHD2132_20K));
+	HD32_intan_setup(hspi,CSS_port,CSS_pin,(uint8_t*)RHD2164_IMPTEST_20K,sizeof(RHD2164_IMPTEST_20K));
 	for(uint8_t i=0;i<64;i++)
 	{
 		intan_read[i]=HD32_intan_readReg(hspi,CSS_port,CSS_pin,i);
@@ -125,17 +126,24 @@ int HD32_intan_readReg(SPI_HandleTypeDef* hspi,GPIO_TypeDef* CSS_port,uint16_t C
 	cmd=addr<<8;
 	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_RESET);			//set CS low
 	HAL_Delay(1);
-	HAL_SPI_Transmit(hspi,(uint8_t*)&cmd,1,1000); 					//Send command byte
+	//HAL_SPI_Transmit(hspi,(uint8_t*)&cmd,1,1000); 					//Send command byte
+	SPI3->DR=cmd;
+	SPI_WAIT_TILL_SENT(SPI3);
 	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_SET);				//set CS HIGH
 	HAL_Delay(1);
 	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_RESET);			//set CS low
 	HAL_Delay(1);
-	HAL_SPI_Transmit(hspi,(uint8_t*)&cmd,1,1000); 					//Send command byte
+	//HAL_SPI_Transmit(hspi,(uint8_t*)&cmd,1,1000); 					//Send command byte
+	SPI3->DR=cmd;
+	SPI_WAIT_TILL_SENT(SPI3);
 	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_SET);				//set CS HIGH
 	HAL_Delay(1);
 	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_RESET);			//set CS low
 	HAL_Delay(1);
-	HAL_SPI_TransmitReceive(hspi,(uint8_t*)&cmd,(uint8_t*)&result,1,1000); //Send command byte
+	//HAL_SPI_TransmitReceive(hspi,(uint8_t*)&cmd,(uint8_t*)&result,1,1000); //Send command byte
+	SPI3->DR=cmd;
+	SPI_WAIT_TILL_SENT(SPI3);
+	result=SPI2->DR;
 	HAL_Delay(1);
 	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_SET);				//set CS HIGH
 	HAL_Delay(1);
@@ -151,19 +159,26 @@ int HD32_intan_writeReg(SPI_HandleTypeDef* hspi,GPIO_TypeDef* CSS_port,uint16_t 
 	cmd=addr<<8|data;
 	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_RESET);				//set CS low
 	//HAL_Delay(1);
-	HAL_SPI_Transmit(hspi,(uint8_t*)&cmd,1,1000); 						//Send command byte
+	//HAL_SPI_Transmit(hspi,(uint8_t*)&cmd,1,1000); 						//Send command byte
+	SPI3->DR=cmd;
+	SPI_WAIT_TILL_SENT(SPI3);
 	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_SET);					//set CS HIGH
-	//HAL_Delay(1);
+	HAL_Delay(1);
 	
 	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_RESET);				//set CS low
 	//HAL_Delay(1);
-	HAL_SPI_Transmit(hspi,(uint8_t*)&cmd,1,1000); 						//Send command byte
+	//HAL_SPI_Transmit(hspi,(uint8_t*)&cmd,1,1000); 						//Send command byte
+	SPI3->DR=cmd;
+	SPI_WAIT_TILL_SENT(SPI3);
 	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_SET);					//set CS HIGH
-	//HAL_Delay(1);
+	HAL_Delay(1);
 	
 	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_RESET);				//set CS low
 	//HAL_Delay(1);
-	HAL_SPI_TransmitReceive(hspi,(uint8_t*)&cmd,(uint8_t*)&result,1,1000); //Send command byte
+	//HAL_SPI_TransmitReceive(hspi,(uint8_t*)&cmd,(uint8_t*)&result,1,1000); //Send command byte
+	SPI3->DR=cmd;
+	SPI_WAIT_TILL_SENT(SPI3);
+	result=SPI2->DR;
 	//HAL_Delay(1);
 	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_SET);					//set CS HIGH
 	//HAL_Delay(1);
