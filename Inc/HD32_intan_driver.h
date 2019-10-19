@@ -8,9 +8,13 @@
 #define INTAN_SPI_RX_DMA DMA1_Stream0
 #define MAIN_TIM TIM4
 
+#define INTAN_PARAM_BANK1		0x00000001U
+#define INTAN_PARAM_BANK2		0x00000002U
+#define INTAN_PARAM_BANK3		0x00000004U
+#define INTAN_PARAM_BANK4		0x00000008U
 typedef struct
 {
-	uint8_t ChannelNum;
+	uint32_t state;
 	uint16_t SamplingRate;
 } IntanParams;
 
@@ -18,6 +22,7 @@ int HD32_intan_init(SPI_HandleTypeDef* hspi,GPIO_TypeDef* CSS_port,uint16_t CSS_
 void HD32_intan_InitConvertCmd(uint16_t* cmdBuf);
 void HD32_intan_DMASETUP(SPI_HandleTypeDef* hspi,uint8_t* RXaddr,uint32_t RXsize,TIM_HandleTypeDef* htim,uint8_t* TXaddr,uint32_t TXsize);
 int HD32_intan_readReg(SPI_HandleTypeDef* hspi,GPIO_TypeDef* CSS_port,uint16_t CSS_pin,uint8_t addr);
+void HD32_intan_readReg_TwoSPI(GPIO_TypeDef* CSS_port,uint16_t CSS_pin,uint8_t addr,uint8_t* result);
 int HD32_intan_writeReg(SPI_HandleTypeDef* hspi,GPIO_TypeDef* CSS_port,uint16_t CSS_pin,uint8_t addr,uint8_t data);
 int HD32_intan_setup(SPI_HandleTypeDef* hspi,GPIO_TypeDef* CSS_port,uint16_t CSS_pin,uint8_t* setting,uint8_t regLen);
 void HD32_intan_calibration(SPI_HandleTypeDef* hspi,GPIO_TypeDef* CSS_port,uint16_t CSS_pin);

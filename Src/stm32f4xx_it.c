@@ -59,7 +59,7 @@ float min1,min2;
 
 extern int test_cyc;
 extern SPI_HandleTypeDef hspi3;
-
+extern IntanParams IntanInfo_1;
 //SPI READER
 volatile uint16_t temp_SPI;
 
@@ -368,15 +368,11 @@ void TIM8_TRG_COM_TIM14_IRQHandler(void)
 	
 	while((SPI3->SR&SPI_SR_RXNE)==0);
 	if((ch&0x20)==0)
-	{
-		//dataBuf[adc_cnt%(fs_ratio*test_cyc)]+=(uint8_t)((0.5+sin(2.0*PI*adc_cnt/system_fs*target_fs)/2.0)*255); 
+	{ 
 		volatile uint16_t temp_SPI=SPI2->DR;		
 		dataBuf[adc_cnt%num_sine_values]+=((float)(*((int16_t*)(&temp_SPI))))/test_cyc; //MISO0 PhaseA
 		temp_SPI=SPI5->DR;		
 		dataBuf1[adc_cnt%num_sine_values]+=((float)(*((int16_t*)(&temp_SPI))))/test_cyc; //MISO1 PhaseA
-		
-//		MeasuredDataBuffer[ch][adc_cnt%num_sine_values]+=(float)(int16_t)(SPI2->DR)/test_cyc; //MISO0 PhaseA
-//		MeasuredDataBuffer[ch+64][adc_cnt%num_sine_values]+=(float)(int16_t)(SPI5->DR)/test_cyc; //MISO1 PhaseA
 	}
 	else
 	{
@@ -384,14 +380,10 @@ void TIM8_TRG_COM_TIM14_IRQHandler(void)
 		dataBuf[adc_cnt%num_sine_values]+=((float)(*((int16_t*)(&temp_SPI))))/test_cyc; //MISO0 PhaseB
 		temp_SPI=SPI4->DR<<1;
 		dataBuf1[adc_cnt%num_sine_values]+=((float)(*((int16_t*)(&temp_SPI))))/test_cyc; //MISO1 PhaseB
-		
-		//MeasuredDataBuffer[ch][adc_cnt%num_sine_values]+=(float)(int16_t)(SPI3->DR<<1)/test_cyc; //MISO0 PhaseB
-		//MeasuredDataBuffer[ch+64][adc_cnt%num_sine_values]+=(float)(int16_t)(SPI4->DR<<1)/test_cyc; //MISO1 PhaseB
 	}
 	adc_cnt++;
 	
 	
-
 	if(adc_cnt>=test_cyc*num_sine_values)
 	{
 		TIM14->CR1&=~TIM_CR1_CEN; //DISABLE TIMER
@@ -431,11 +423,13 @@ void TIM8_TRG_COM_TIM14_IRQHandler(void)
 		}
 
 		
-		//max /= 38e-9;
-		//min /= 38e-9;
 		float DAC_current=3.8e-9;
 		impedance[ch]=(max1-min1)*0.195*1e-6/DAC_current*1e-3/2; //*0.195->microVolt *1e-6->Volt /DAC_current ->Ohm *1e-3 ->KOhm 
-		impedance[ch+64]=(max2-min2)*0.195*1e-6/DAC_current*1e-3/2;
+		
+		if (IntanInfo_1.state > 3){
+			impedance[ch+64]=(max2-min2)*0.195*1e-6/DAC_current*1e-3/2;
+		}
+		//impedance[ch+64]=(max2-min2)*0.195*1e-6/DAC_current*1e-3/2;
 		
 		// check if impedance criteria is met
 		if ( ( ( (int16_t)impedance[ch] ) < MAX_IMP) & (impedance[ch] > 0))
@@ -454,6 +448,7 @@ void TIM8_TRG_COM_TIM14_IRQHandler(void)
 		{
 			channel_imp_flag[ch+64] = 0;
 		}
+		//
 		
 		adc_cnt=0;
 		ch++;
@@ -463,7 +458,6 @@ void TIM8_TRG_COM_TIM14_IRQHandler(void)
 		SPI3->DR=((0x80|0x07)<<8)|ch; //write to register 7 with DAC channel
 		SPI_WAIT_TILL_SENT(SPI3);
 		HAL_GPIO_WritePin(INTAN_CS_GPIO_Port,INTAN_CS_Pin,GPIO_PIN_SET);//Set CS high
-		// Should we make it wait for 154 ns here ???
 		
 		TIM14->CR1|=TIM_CR1_CEN; //enABLE TIMER
 	}

@@ -71,7 +71,7 @@ DMA_HandleTypeDef hdma_tim4_ch2;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-IntanParams IntanInfo;
+IntanParams IntanInfo_1;
 float dataBuf[100];
 float dataBuf1[100];
 float   impedance[128];
@@ -162,10 +162,10 @@ int main(void)
 	
 	
 	// BLE START
-	// Set HJ_ROLE to VDD, making it a slave device
+	// Set HJ_ROLE to VDD, making the BlueTooth module a slave device
 	HAL_GPIO_WritePin(HJ_ROLE_GPIO_Port, HJ_ROLE_Pin, VDD_VALUE);
 	
-	// Set HJ_MODE TO GND, entering configuration
+	// Set HJ_MODE TO GND, entering configuration mode for the BlueTooth module
 	HAL_GPIO_WritePin(hj_mode_GPIO_Port, hj_mode_Pin, 0);
 	
 	// Send <BAUD38400>, and read
@@ -202,6 +202,7 @@ int main(void)
 	HAL_GPIO_WritePin(hj_mode_GPIO_Port, hj_mode_Pin, VDD_VALUE);
 	// BLE END
 	
+	
 	// When power up, all LEDs turn on for 1 second
 	HAL_GPIO_WritePin(LED_GPIO_Port,LED_Pin,GPIO_PIN_SET);
 	HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_SET);
@@ -218,16 +219,19 @@ int main(void)
 	for(int i=0; i<MAX_CHANNEL_NUMBER; i++){
 		channel_imp_flag[i] = 0;
 	}
+	//
+	
 	// Compute sine wave points and other logical values; then store values in databuffers
 	int sine_frequency = 1e3;
 	num_sine_values = STEP_FS / sine_frequency;
 	for(int i=0; i<num_sine_values; i++){
 		DAC_cmd[i] = ((0x80|0x06)<<8)|(uint16_t)((0.5+sin(2.0*PI*((float)i/(float)num_sine_values))/2.0)*255);
-		//DAC_cmd[i] = ((0x80|0x06)<<8)|(uint8_t)(((0.5 + sin(2.0* PI * ((float)i)/(float)num_sine_values * (float)sine_frequency)/2.0)*255.0));
 	}
-
-	//Initialize Intan recording module
-	HD32_intan_init(&hspi3,INTAN_CS_GPIO_Port,INTAN_CS_Pin,20000,&IntanInfo);	//Intan setup and info read
+	//
+  
+	
+	//Initialize Intan recording module, connected to SPI3
+	HD32_intan_init(&hspi3,INTAN_CS_GPIO_Port,INTAN_CS_Pin,20000,&IntanInfo_1);	//Intan setup and info read
 	HD32_intan_calibration(&hspi3,INTAN_CS_GPIO_Port,INTAN_CS_Pin);
 	HD32_intan_writeReg(&hspi3,INTAN_CS_GPIO_Port,INTAN_CS_Pin,5,0x49);// Enable impedance testing mode
 	//TIM14->CR1|=TIM_CR1_ARPE|TIM_CR1_CEN;// ENable timer  auto-reload and start tick timer
@@ -242,11 +246,12 @@ int main(void)
 	DAC_on=1;
 	//ch=40;
 	
+	
+	
 	TIM14->ARR = (SYSTEM_FS / STEP_FS)-1; 
 	HAL_TIM_Base_Start_IT(&htim14);
 	HAL_GPIO_WritePin(LED_GPIO_Port,LED_Pin,GPIO_PIN_SET);
-	
-	// Start another interrupt function for USART1 
+	//
 	
   /* USER CODE END 2 */
 
@@ -261,7 +266,7 @@ int main(void)
 			counter_1_64 += channel_imp_flag[i];
 			counter_65_128 += channel_imp_flag[i+64];
 		}
-		if (counter_1_64 > 31)
+		if (counter_1_64 > 15)
 		{
 			channels_1_ready = 1;
 			HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_SET);
@@ -271,7 +276,7 @@ int main(void)
 			channels_1_ready = 0;
 			HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);
 		}
-		if (counter_65_128 > 31)
+		if (counter_65_128 > 15)
 		{
 			channels_2_ready = 1;
 			HAL_GPIO_WritePin(LED2_GPIO_Port,LED2_Pin,GPIO_PIN_SET);
@@ -304,6 +309,11 @@ int main(void)
 			uint16_t Size = 132;
 			uint32_t Timeout = 1000;
 			HAL_UART_Transmit(&huart1, test_data_pointer, Size, Timeout);
+			
+			// Recheck Intan connection
+			HD32_intan_init(&hspi3,INTAN_CS_GPIO_Port,INTAN_CS_Pin,20000,&IntanInfo_1);	//Intan setup and info read
+			HD32_intan_calibration(&hspi3,INTAN_CS_GPIO_Port,INTAN_CS_Pin);
+			HD32_intan_writeReg(&hspi3,INTAN_CS_GPIO_Port,INTAN_CS_Pin,5,0x49);// Enable impedance testing mode
 	}
 		
   }
@@ -413,7 +423,7 @@ static void MX_SPI3_Init(void)
   hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi3.Init.NSS = SPI_NSS_SOFT;
-  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
   hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -668,7 +678,7 @@ static void MX_TIM14_Init(void)
   htim14.Instance = TIM14;
   htim14.Init.Prescaler = 0;
   htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim14.Init.Period = 1999;
+  htim14.Init.Period = 999;
   htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim14) != HAL_OK)

@@ -16,19 +16,36 @@ int HD32_intan_init(SPI_HandleTypeDef* hspi,GPIO_TypeDef* CSS_port,uint16_t CSS_
 	const uint8_t RHD2132_5K[22]  ={222,8,40,2,204,0,0,0,22,0,23,0,16,124,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
 	const uint8_t RHD2132_1250[22]={222,32,40,2,204,0,0,0,22,0,23,0,16,124,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
 	//INTAN_SPI_Init(hspi);
-	uint8_t intan_read[64];
-	for(uint8_t i=0;i<64;i++){
-		intan_read[i]=HD32_intan_readReg(hspi,CSS_port,CSS_pin,i);
+	uint8_t intan_read_1[70];
+	uint8_t intan_read_2[70];
+	uint8_t readReg_result[2];
+	for(uint8_t i=0;i<70;i++){
+		HD32_intan_readReg_TwoSPI(CSS_port,CSS_pin,i,readReg_result);
+		intan_read_1[i] = readReg_result[0];
+		intan_read_2[i] = readReg_result[1];
 	}
 	HD32_intan_setup(hspi,CSS_port,CSS_pin,(uint8_t*)RHD2164_IMPTEST_20K,sizeof(RHD2164_IMPTEST_20K));
-	for(uint8_t i=0;i<64;i++)
+	for(uint8_t i=0;i<70;i++)
 	{
-		intan_read[i]=HD32_intan_readReg(hspi,CSS_port,CSS_pin,i);
+		*readReg_result = HD32_intan_readReg(hspi,CSS_port,CSS_pin,i);
+		intan_read_1[i] = readReg_result[0];
+		intan_read_2[i] = readReg_result[1];
 	}
 	
-	param->ChannelNum=intan_read[62];
+	//update Intan state
 	param->SamplingRate=fs;
-	
+	if (intan_read_1[64] == 0x01){
+		param->state = INTAN_PARAM_BANK1;
+	}
+	else if (intan_read_1[64] == 0x04){
+		param->state = INTAN_PARAM_BANK1 + INTAN_PARAM_BANK2;
+	} 
+	if (intan_read_2[64] == 0x01){
+		param->state = INTAN_PARAM_BANK3;
+	}
+	else if (intan_read_2[64] == 0x04){
+		param->state = INTAN_PARAM_BANK3 + INTAN_PARAM_BANK4;
+	}
 	HD32_intan_calibration(hspi,CSS_port,CSS_pin);
 	return 0;
 }
@@ -148,7 +165,40 @@ int HD32_intan_readReg(SPI_HandleTypeDef* hspi,GPIO_TypeDef* CSS_port,uint16_t C
 	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_SET);				//set CS HIGH
 	HAL_Delay(1);
 	result&=0xff;
+
 	return result;
+}
+
+void HD32_intan_readReg_TwoSPI(GPIO_TypeDef* CSS_port,uint16_t CSS_pin,uint8_t addr,uint8_t* result){
+	uint16_t cmd=0;
+	addr|=0xc0;
+	cmd=addr<<8;
+	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_RESET);			//set CS low
+	HAL_Delay(1);
+	//HAL_SPI_Transmit(hspi,(uint8_t*)&cmd,1,1000); 					//Send command byte
+	SPI3->DR=cmd;
+	SPI_WAIT_TILL_SENT(SPI3);
+	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_SET);				//set CS HIGH
+	HAL_Delay(1);
+	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_RESET);			//set CS low
+	HAL_Delay(1);
+	//HAL_SPI_Transmit(hspi,(uint8_t*)&cmd,1,1000); 					//Send command byte
+	SPI3->DR=cmd;
+	SPI_WAIT_TILL_SENT(SPI3);
+	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_SET);				//set CS HIGH
+	HAL_Delay(1);
+	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_RESET);			//set CS low
+	HAL_Delay(1);
+	//HAL_SPI_TransmitReceive(hspi,(uint8_t*)&cmd,(uint8_t*)&result,1,1000); //Send command byte
+	SPI3->DR=cmd;
+	SPI_WAIT_TILL_SENT(SPI3);
+	result[0]=SPI2->DR;
+	result[1]=SPI5->DR;
+	HAL_Delay(1);
+	HAL_GPIO_WritePin(CSS_port,CSS_pin,GPIO_PIN_SET);				//set CS HIGH
+	HAL_Delay(1);
+	result[0]&=0xff;
+	result[1]&=0xff;
 }
 
 int HD32_intan_writeReg(SPI_HandleTypeDef* hspi,GPIO_TypeDef* CSS_port,uint16_t CSS_pin,uint8_t addr,uint8_t data){
